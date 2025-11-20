@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,25 +12,32 @@ import (
 
 // Config 包含运行服务所需的关键配置。
 type Config struct {
-	AppEnv           string
-	ServerHost       string
-	ServerPort       string
-	DatabaseURL      string
-	DBHost           string
-	DBPort           string
-	DBUser           string
-	DBPassword       string
-	DBName           string
-	DBSSLMode        string
-	GoogleClientID   string
-	GoogleSecret     string
-	GoogleRedirect   string
-	AllowedOrigins   []string
-	CookieDomain     string
-	SessionStateName string
-	JWTSecret        string
-	JWTExpiresIn     time.Duration
-	FrontendRedirect string
+	AppEnv                string
+	ServerHost            string
+	ServerPort            string
+	DatabaseURL           string
+	DBHost                string
+	DBPort                string
+	DBUser                string
+	DBPassword            string
+	DBName                string
+	DBSSLMode             string
+	GoogleClientID        string
+	GoogleSecret          string
+	GoogleRedirect        string
+	AllowedOrigins        []string
+	CookieDomain          string
+	SessionStateName      string
+	JWTSecret             string
+	JWTExpiresIn          time.Duration
+	FrontendRedirect      string
+	UnidirectionalAPIURL  string
+	DuplexMonotrackAPIURL string
+	DuplexDualtrackAPIURL string
+	GlotKey               string
+	RedisAddr             string
+	RedisPassword         string
+	RedisDB               int
 }
 
 // LoadConfig 负责加载 .env 并组合最终配置。
@@ -42,25 +50,32 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		AppEnv:           getEnv("APP_ENV", "development"),
-		ServerHost:       getEnv("SERVER_HOST", "0.0.0.0"),
-		ServerPort:       getEnv("SERVER_PORT", "8080"),
-		DatabaseURL:      os.Getenv("DATABASE_URL"),
-		DBHost:           getEnv("DB_HOST", "localhost"),
-		DBPort:           getEnv("DB_PORT", "5432"),
-		DBUser:           getEnv("DB_USER", "postgres"),
-		DBPassword:       getEnv("DB_PASSWORD", ""),
-		DBName:           getEnv("DB_NAME", "developer_platform"),
-		DBSSLMode:        getEnv("DB_SSL_MODE", "disable"),
-		GoogleClientID:   os.Getenv("GOOGLE_CLIENT_ID"),
-		GoogleSecret:     os.Getenv("GOOGLE_CLIENT_SECRET"),
-		GoogleRedirect:   os.Getenv("GOOGLE_REDIRECT_URL"),
-		AllowedOrigins:   splitAndTrim(os.Getenv("ALLOWED_ORIGINS")),
-		CookieDomain:     os.Getenv("COOKIE_DOMAIN"),
-		SessionStateName: getEnv("SESSION_STATE_NAME", "google_oauth_state"),
-		JWTSecret:        os.Getenv("JWT_SECRET"),
-		JWTExpiresIn:     jwtExpiry,
-		FrontendRedirect: os.Getenv("FRONTEND_REDIRECT_URL"),
+		AppEnv:                getEnv("APP_ENV", "development"),
+		ServerHost:            getEnv("SERVER_HOST", "0.0.0.0"),
+		ServerPort:            getEnv("SERVER_PORT", "8080"),
+		DatabaseURL:           os.Getenv("DATABASE_URL"),
+		DBHost:                getEnv("DB_HOST", "localhost"),
+		DBPort:                getEnv("DB_PORT", "5432"),
+		DBUser:                getEnv("DB_USER", "postgres"),
+		DBPassword:            getEnv("DB_PASSWORD", ""),
+		DBName:                getEnv("DB_NAME", "developer_platform"),
+		DBSSLMode:             getEnv("DB_SSL_MODE", "disable"),
+		GoogleClientID:        os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleSecret:          os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirect:        os.Getenv("GOOGLE_REDIRECT_URL"),
+		AllowedOrigins:        splitAndTrim(os.Getenv("ALLOWED_ORIGINS")),
+		CookieDomain:          os.Getenv("COOKIE_DOMAIN"),
+		SessionStateName:      getEnv("SESSION_STATE_NAME", "google_oauth_state"),
+		JWTSecret:             os.Getenv("JWT_SECRET"),
+		JWTExpiresIn:          jwtExpiry,
+		FrontendRedirect:      os.Getenv("FRONTEND_REDIRECT_URL"),
+		UnidirectionalAPIURL:  os.Getenv("UNIDIRECTIONAL_API_URL"),
+		DuplexMonotrackAPIURL: os.Getenv("DUPLEX_MONOTRACK_API_URL"),
+		DuplexDualtrackAPIURL: os.Getenv("DUPLEX_DUALTRACK_API_URL"),
+		GlotKey:               os.Getenv("GLOT_KEY"),
+		RedisAddr:             os.Getenv("REDIS_ADDR"),
+		RedisPassword:         os.Getenv("REDIS_PASSWORD"),
+		RedisDB:               parseIntEnv("REDIS_DB", 0),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -81,11 +96,16 @@ func LoadConfig() (*Config, error) {
 // Validate 对关键字段做最小校验。
 func (c *Config) Validate() error {
 	required := map[string]string{
-		"GOOGLE_CLIENT_ID":      c.GoogleClientID,
-		"GOOGLE_CLIENT_SECRET":  c.GoogleSecret,
-		"GOOGLE_REDIRECT_URL":   c.GoogleRedirect,
-		"JWT_SECRET":            c.JWTSecret,
-		"FRONTEND_REDIRECT_URL": c.FrontendRedirect,
+		"GOOGLE_CLIENT_ID":         c.GoogleClientID,
+		"GOOGLE_CLIENT_SECRET":     c.GoogleSecret,
+		"GOOGLE_REDIRECT_URL":      c.GoogleRedirect,
+		"JWT_SECRET":               c.JWTSecret,
+		"FRONTEND_REDIRECT_URL":    c.FrontendRedirect,
+		"UNIDIRECTIONAL_API_URL":   c.UnidirectionalAPIURL,
+		"DUPLEX_MONOTRACK_API_URL": c.DuplexMonotrackAPIURL,
+		"DUPLEX_DUALTRACK_API_URL": c.DuplexDualtrackAPIURL,
+		"GLOT_KEY":                 c.GlotKey,
+		"REDIS_ADDR":               c.RedisAddr,
 	}
 
 	for key, value := range required {
@@ -109,6 +129,17 @@ func (c *Config) ServerAddr() string {
 func getEnv(key, fallback string) string {
 	if val := strings.TrimSpace(os.Getenv(key)); val != "" {
 		return val
+	}
+	return fallback
+}
+
+func parseIntEnv(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	if parsed, err := strconv.Atoi(value); err == nil {
+		return parsed
 	}
 	return fallback
 }

@@ -32,6 +32,11 @@ go run ./...
 | `JWT_SECRET` | 签发访问令牌所用密钥 |
 | `JWT_EXPIRES_IN` | 令牌有效期，Go `time.ParseDuration` 格式，如 `24h` |
 | `FRONTEND_REDIRECT_URL` | 登录成功后重定向到的前端地址，例如 `https://app.example.com/auth/success` |
+| `UNIDIRECTIONAL_API_URL` | 单向翻译/转写 WebSocket 地址 |
+| `DUPLEX_MONOTRACK_API_URL` | Duplex Monotrack 服务地址 |
+| `DUPLEX_DUALTRACK_API_URL` | Duplex Dualtrack 服务地址 |
+| `GLOT_KEY` | Glot 平台访问密钥 |
+| `REDIS_ADDR`/`REDIS_PASSWORD`/`REDIS_DB` | Redis 连接信息（Redis DB 默认 `0`，地址/密码需手动填写） |
 
 更多字段可参考 `.env.example`。
 

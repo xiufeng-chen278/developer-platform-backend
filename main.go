@@ -27,6 +27,10 @@ func main() {
 		log.Fatalf("执行迁移失败: %v", err)
 	}
 
+	if _, err := models.InitRedis(cfg); err != nil {
+		log.Fatalf("初始化 Redis 失败: %v", err)
+	}
+
 	router := gin.Default()
 	router.Use(middlewares.CORSMiddleware(cfg))
 	routes.RegisterRoutes(router, cfg, db)
