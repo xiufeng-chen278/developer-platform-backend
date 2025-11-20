@@ -1,0 +1,24 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build artifacts
+dist/
+coverage.out
+
+# Go workspace
+*.test
+/vendor/
+
+# Env & editor
+.env
+.DS_Store
+/.idea/
+/.vscode/
+
+# Docker
+/tmp/
